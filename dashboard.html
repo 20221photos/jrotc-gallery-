@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AFJROTC Dashboard - OH-20221</title>
+<style>
+  /* Reset & base */
+  * {
+    box-sizing: border-box;
+  }
+  body, html {
+    margin: 0; padding: 0; height: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #6a1b9a 0%, #4a148c 100%);
+    color: #ddd;
+    user-select: none;
+  }
+  button, input, select, textarea {
+    font-family: inherit;
+  }
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    background: #7e57c2;
+    color: white;
+    padding: 10px 18px;
+    font-weight: 600;
+    transition: background-color 0.3s;
+  }
+  button:hover:not(:disabled) {
+    background: #9c27b0;
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  input[type=text], input[type=password], input[type=file], textarea {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: none;
+    width: 100%;
+    max-width: 400px;
+    margin: 6px 0;
+    font-size: 1rem;
+  }
+  label {
+    font-weight: 600;
+    margin-top: 12px;
+    display: block;
+  }
+
+  /* --- Layout --- */
+  #loginScreen, #dashboard {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #dashboard {
+    display: none;
+    padding: 12px 20px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    background: #4a148c;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    padding: 12px 20px;
+    border-radius: 0 0 15px 15px;
+    user-select: none;
+  }
+
+  #unitBadge {
+    height: 70px;
+    width: 70px;
+    border-radius: 12px;
+    margin-right: 15px;
+    object-fit: contain;
+    border: 2px solid #b39ddb;
+    cursor: pointer;
+    transition: box-shadow 0.3s;
+  }
+  #unitBadge:hover {
+    box-shadow: 0 0 20px #b39ddb;
+  }
+
+  header h1 {
+    flex: 1;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: #ddd;
+    letter-spacing: 1.5px;
+  }
+  #logoutBtn {
+    background: #b71c1c;
+    padding: 8px 14px;
+    border-radius: 8px;
+  }
+  #logoutBtn:hover {
+    background: #ef5350;
+  }
+
+  /* --- Page selector --- */
+  #pagesNav {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    margin: 18px 0 12px;
+    padding-bottom: 5px;
+  }
+  #pagesNav button {
+    flex-shrink: 0;
+    background: #7e57c2;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 0 5px #512da8;
+    transition: background-color 0.3s;
+  }
+  #pagesNav button.active {
+    background: #d1c4e9;
+    color: #4a148c;
+    box-shadow: 0 0 12px #d1c4e9;
+    font-weight: 700;
+  }
+  #pagesNav button:hover:not(.active) {
+    background: #9c27b0;
+  }
+
+  /* --- Page management --- */
+  #pageControls {
+    margin-bottom: 12px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  #pageControls input[type="text"] {
+    max-width: 250px;
+  }
+
+  /* --- Media upload & filter --- */
+  #mediaControls {
+    margin-bottom: 12px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  #mediaControls input[type=file] {
+    cursor: pointer;
+    background: #7e57c2;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: none;
+  }
+  #mediaControls input[type=file]::-webkit-file-upload-button {
+    cursor: pointer;
+    background: #7e57c2;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  #tagFilter {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    width: 180px;
+    font-size: 1rem;
+    color: #4a148c;
+    font-weight: 600;
+  }
+
+  /* --- Media gallery --- */
+  #gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(160px,1fr));
+    gap: 14px;
+    max-height: 58vh;
+    overflow-y: auto;
+    padding-bottom: 12px;
+    border-radius: 15px;
+    box-shadow: inset 0 0 30px #512da8;
+    background: #311b70;
+  }
+  .media-item {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 8px #7e57c2;
+    cursor: pointer;
+    background: #4a148c;
+    transition: box-shadow 0.3s;
+  }
+  .media-item:hover {
+    box-shadow: 0 0 20px #d1c4e9;
+  }
+  .media-item img, .media-item video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+  }
+  .media-item .delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(183, 28, 28, 0.8);
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    color: white;
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 26px;
+    text-align: center;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.25s;
+    user-select: none;
+  }
+  .media-item .delete-btn:hover {
+    opacity: 1;
+  }
+  .media-item .upload-date {
+    position: absolute;
+    bottom: 5px;
+    left: 6px;
+    background: rgba(74, 20, 140, 0.7);
+    color: #d1c4e9;
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    user-select: none;
+    max-width: 90%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .media-item .tags {
+    position: absolute;
+    bottom: 22px;
+    left: 6px;
+    background: rgba(121, 81, 255, 0.75);
+    color: #ddd;
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    user-select: none;
+    max-width: 90%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* --- Fullscreen modal --- */
+  #fullscreenOverlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(10,10,10,0.95);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    flex-direction: column;
+    user-select: none;
+  }
+  #fullscreenMedia {
+    max-width: 90vw;
+    max-height: 80vh;
+    border-radius: 15px;
+    box-shadow: 0 0 40px #b39ddb;
+    background: black;
+  }
+  #fullscreenCaption {
+    margin-top: 12px;
+    color: #b39ddb;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    max-width: 90vw;
+  }
+  #fullscreenCloseBtn {
+    position: absolute;
+    top: 12px;
+    right: 20px;
+    font-size: 2rem;
+    font-weight: 900;
+    color: #d1c4e9;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  #fullscreenNavPrev, #fullscreenNavNext {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 3rem;
+    color: #d1c4e9;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    user-select: none;
+    padding: 0 10px;
+  }
+  #fullscreenNavPrev {
+    left: 10px;
+  }
+  #fullscreenNavNext {
+    right: 10px;
+  }
+  #fullscreenNavPrev:hover, #fullscreenNavNext:hover, #fullscreenCloseBtn:hover {
+    color: #9c27b0;
+  }
+
+  /* Scrollbar styling for gallery */
+  #gallery::-webkit-scrollbar {
+    width: 10px;
+  }
+  #gallery::-webkit-scrollbar-track {
+    background: #311b70;
+    border-radius: 10px;
+  }
+  #gallery::-webkit-scrollbar-thumb {
+    background: #7e57c2;
+    border-radius: 10px;
+  }
+
+  /* Responsive tweaks */
+  @media (max-width: 600px) {
+    #pagesNav {
+      justify-content: center;
+    }
+    #gallery {
+      grid-template-columns: repeat(auto-fill,minmax(120px,1fr));
+      max-height: 50vh;
+    }
+    #fullscreenMedia {
+      max-width: 95vw;
+      max-height: 70vh;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="loginScreen">
+  <h1>AFJROTC Dashboard Login</h1>
+  <label for="loginPassword">Enter Password:</label>
+  <input id="loginPassword" type="password" autocomplete="off" placeholder="Password" />
+  <button id="loginBtn">Login</button>
+  <p style="margin-top: 15px; color:#ccc; font-size:0.9rem;">Hint: <strong>jrotc</strong></p>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard" style="display:none; flex-direction: column; height: 100vh;">
+
+  <header>
+    <img id="unitBadge" src="unit_badge_resized.png" alt="Unit Badge" title="Click to change badge" />
+    <h1>OH-20221 Logan High School AFJROTC Dashboard</h1>
+    <button id="logoutBtn" title="Logout">Logout</button>
+  </header>
+
+  <div id="pageControls">
+    <input type="text" id="newPageName" placeholder="New gallery/page name" maxlength="30" />
+    <button id="addPageBtn" title="Add new gallery/page">Add Page</button>
+    <button id="deletePageBtn" title="Delete current gallery/page" disabled>Delete Page</button>
+  </div>
+
+  <div id="pagesNav" aria-label="Gallery Pages Navigation"></div>
+
+  <div id="mediaControls">
+    <label for="uploadInput" style="cursor:pointer; user-select:none;">
+      📤 Drag & Drop or Click to Upload Images/Videos
+      <input type="file" id="uploadInput" multiple accept="image/*,video/*" style="display:none" />
+    </label>
+    <input type="text" id="tagFilter" placeholder="Filter by tag(s), comma-separated" title="Filter media by tags" />
+  </div>
+
+  <div id="gallery" aria-label="Media Gallery"></div>
+</div>
+
+<!-- Fullscreen Modal -->
+<div id="fullscreenOverlay" role="dialog" aria-modal="true" aria-label="Fullscreen media viewer">
+  <button id="fullscreenCloseBtn" aria-label="Close fullscreen viewer">&times;</button>
+  <button id="fullscreenNavPrev" aria-label="Previous media">&#8592;</button>
+  <button id="fullscreenNavNext" aria-label="Next media">&#8594;</button>
+  <!-- Media container -->
+</div>
+
+<script>
+(() => {
+  // Constants
+  const STORAGE_KEY = 'afjrotc_pages';
+  const PASSWORD_KEY = 'afjrotc_login';
+  const DEFAULT_PASSWORD = 'afjrotc2025';
+
+  // DOM Elements
+  const loginScreen = document.getElementById('loginScreen');
+  const dashboard = document.getElementById('dashboard');
+  const loginPassword = document.getElementById('loginPassword');
+  const loginBtn = document.getElementById('loginBtn');
+
+  const logoutBtn = document.getElementById('logoutBtn');
+  const unitBadge = document.getElementById('unitBadge');
+  const newPageNameInput = document.getElementById('newPageName');
+  const addPageBtn = document.getElementById('addPageBtn');
+  const deletePageBtn = document.getElementById('deletePageBtn');
+
+  const pagesNav = document.getElementById('pagesNav');
+  const uploadInput = document.getElementById('uploadInput');
+  const tagFilterInput = document.getElementById('tagFilter');
+  const gallery = document.getElementById('gallery');
+
+  const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+  const fullscreenCloseBtn = document.getElementById('fullscreenCloseBtn');
+  const fullscreenNavPrev = document.getElementById('fullscreenNavPrev');
+  const fullscreenNavNext = document.getElementById('fullscreenNavNext');
+
+  // App State
+  let pages = {};
+  let currentPage = null;
+  let filteredMediaIndices = [];
+  let fullscreenIndex = -1;
+
+  // Load from localStorage
+  function loadPages() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) return JSON.parse(raw);
+    } catch(e) {
+      console.error('Error parsing pages:', e);
+    }
+    return {};
+  }
+  function savePages() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(pages));
+  }
+  function isLoggedIn() {
+    return localStorage.getItem(PASSWORD_KEY) === 'true';
+  }
+  function setLoggedIn(state) {
+    localStorage.setItem(PASSWORD_KEY, state ? 'true' : 'false');
+  }
+
+  // Show/Hide screens
+  function showLogin() {
+    loginScreen.style.display = 'flex';
+    dashboard.style.display = 'none';
+    loginPassword.value = '';
+    loginPassword.focus();
+  }
+  function showDashboard() {
+    loginScreen.style.display = 'none';
+    dashboard.style.display = 'flex';
+    renderPagesNav();
+    if(currentPage == null && Object.keys(pages).length > 0) {
+      selectPage(Object.keys(pages)[0]);
+    } else if(currentPage != null && pages[currentPage]) {
+      selectPage(currentPage);
+    }
+    loadUnitBadge();
+  }
+
+  // Login logic
+  loginBtn.onclick = () => {
+    const pw = loginPassword.value.trim();
+    if(pw === DEFAULT_PASSWORD) {
+      setLoggedIn(true);
+      pages = loadPages();
+      showDashboard();
+    } else {
+      alert('Incorrect password!');
+      loginPassword.value = '';
+      loginPassword.focus();
+    }
+  };
+
+  // Logout
+  logoutBtn.onclick = () => {
+    setLoggedIn(false);
+    currentPage = null;
+    pages = {};
+    showLogin();
+  };
+
+  // Unit Badge upload & store
+  function loadUnitBadge() {
+    const badgeData = localStorage.getItem('unitBadgeDataUrl');
+    if(badgeData) {
+      unitBadge.src = badgeData;
+    }
+  }
+  unitBadge.onclick = () => {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.onchange = e => {
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => {
+        unitBadge.src = evt.target.result;
+        localStorage.setItem('unitBadgeDataUrl', evt.target.result);
+      };
+      reader.readAsDataURL(file);
+    };
+    fileInput.click();
+  };
+
+  // Pages navigation
+  function renderPagesNav() {
+    pagesNav.innerHTML = '';
+    const pageNames = Object.keys(pages);
+    if(pageNames.length === 0) {
+      pagesNav.innerHTML = '<p style="color:#ddd; font-style: italic;">No pages yet. Add one below.</p>';
+      deletePageBtn.disabled = true;
+      currentPage = null;
+      gallery.innerHTML = '';
+      return;
+    }
+    pageNames.forEach(name => {
+      const btn = document.createElement('button');
+      btn.textContent = name;
+      btn.classList.toggle('active', name === currentPage);
+      btn.onclick = () => {
+        selectPage(name);
+      };
+      pagesNav.appendChild(btn);
+    });
+    deletePageBtn.disabled = currentPage === null;
+  }
+
+  // Select a page
+  function selectPage(name) {
+    currentPage = name;
+    renderPagesNav();
+    renderGallery();
+    deletePageBtn.disabled = false;
+    newPageNameInput.value = '';
+    tagFilterInput.value = '';
+  }
+
+  // Add new page
+  addPageBtn.onclick = () => {
+    const newName = newPageNameInput.value.trim();
+    if(!newName) {
+      alert('Please enter a valid page name.');
+      return;
+    }
+    if(pages[newName]) {
+      alert('Page already exists.');
+      return;
+    }
+    pages[newName] = [];
+    savePages();
+    selectPage(newName);
+  };
+
+  // Delete current page
+  deletePageBtn.onclick = () => {
+    if(!currentPage) return;
+    if(confirm(`Delete the entire page "${currentPage}"? This cannot be undone.`)) {
+      delete pages[currentPage];
+      savePages();
+      const keys = Object.keys(pages);
+      if(keys.length) {
+        selectPage(keys[0]);
+      } else {
+        currentPage = null;
+        renderPagesNav();
+        gallery.innerHTML = '';
+        deletePageBtn.disabled = true;
+      }
+    }
+  };
+
+  // Upload files handler (drag & drop and file selector)
+  function addMediaFiles(files) {
+    if(!currentPage) {
+      alert('Please select or create a page first.');
+      return;
+    }
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'video/mp4', 'video/webm', 'video/ogg'];
+    const toAdd = [];
+    const filePromises = [];
+
+    for(const file of files) {
+      if(!validTypes.includes(file.type)) {
+        alert(`Unsupported file type: ${file.type}`);
+        continue;
+      }
+      const reader = new FileReader();
+      const p = new Promise((res, rej) => {
+        reader.onload = e => {
+          // Prompt tags for each file
+          const tags = prompt(`Enter tags for "${file.name}" (comma separated, or leave blank):`) || '';
+          const tagArray = tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+          toAdd.push({
+            src: e.target.result,
+            type: file.type.startsWith('video/') ? 'video' : 'image',
+            uploadDate: new Date().toISOString(),
+            tags: tagArray
+          });
+          res();
+        };
+        reader.onerror = () => rej(`Failed to read file: ${file.name}`);
+      });
+      reader.readAsDataURL(file);
+      filePromises.push(p);
+    }
+
+    Promise.all(filePromises).then(() => {
+      pages[currentPage] = pages[currentPage].concat(toAdd);
+      savePages();
+      renderGallery();
+    }).catch(err => {
+      alert(err);
+    });
+  }
+
+  // Drag & drop listeners
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  function highlightDropArea() {
+    uploadLabel.style.background = '#9c27b0';
+    uploadLabel.style.boxShadow = '0 0 20px #d1c4e9';
+  }
+  function unhighlightDropArea() {
+    uploadLabel.style.background = '';
+    uploadLabel.style.boxShadow = '';
+  }
+
+  // Elements for drag/drop area
+  const uploadLabel = document.querySelector('label[for="uploadInput"]');
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    uploadLabel.addEventListener(eventName, e => {
+      preventDefaults(e);
+      highlightDropArea();
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    uploadLabel.addEventListener(eventName, e => {
+      preventDefaults(e);
+      unhighlightDropArea();
+    }, false);
+  });
+
+  uploadLabel.addEventListener('drop', e => {
+    const dt = e.dataTransfer;
+    if(dt && dt.files.length) {
+      addMediaFiles(dt.files);
+    }
+  });
+
+  // File input selector
+  uploadInput.addEventListener('change', e => {
+    if(e.target.files.length) {
+      addMediaFiles(e.target.files);
+      uploadInput.value = ''; // reset
+    }
+  });
+
+  // Gallery render & filtering
+  function renderGallery() {
+    if(!currentPage) {
+      gallery.innerHTML = '<p style="text-align:center; margin-top: 20px; color: #ccc;">No page selected</p>';
+      return;
+    }
+    const media = pages[currentPage] || [];
+    const filterTags = tagFilterInput.value.toLowerCase().split(',').map(t => t.trim()).filter(t => t);
+    filteredMediaIndices = [];
+
+    gallery.innerHTML = '';
+    if(media.length === 0) {
+      gallery.innerHTML = '<p style="text-align:center; margin-top: 20px; color: #ccc;">No media uploaded for this page.</p>';
+      return;
+    }
+
+    media.forEach((item, i) => {
+      // Filtering by tags
+      if(filterTags.length > 0) {
+        const tagsLower = item.tags.map(t => t.toLowerCase());
+        const matched = filterTags.every(fTag => tagsLower.includes(fTag));
+        if(!matched) return;
+      }
+      filteredMediaIndices.push(i);
+
+      const div = document.createElement('div');
+      div.className = 'media-item';
+      div.title = `Uploaded: ${new Date(item.uploadDate).toLocaleString()}\nTags: ${item.tags.join(', ') || 'None'}`;
+      div.dataset.index = i;
+
+      // Media element
+      if(item.type === 'video') {
+        const video = document.createElement('video');
+        video.src = item.src;
+        video.setAttribute('muted', '');
+        video.setAttribute('playsinline', '');
+        video.setAttribute('preload', 'metadata');
+        video.style.height = '160px';
+        video.style.width = '100%';
+        video.style.objectFit = 'cover';
+        video.style.borderRadius = '12px';
+        div.appendChild(video);
+      } else {
+        const img = document.createElement('img');
+        img.src = item.src;
+        img.alt = `Media ${i+1}`;
+        div.appendChild(img);
+      }
+
+      // Upload date badge
+      const dateBadge = document.createElement('div');
+      dateBadge.className = 'upload-date';
+      dateBadge.textContent = new Date(item.uploadDate).toLocaleDateString();
+      div.appendChild(dateBadge);
+
+      // Tags badge
+      if(item.tags.length) {
+        const tagsBadge = document.createElement('div');
+        tagsBadge.className = 'tags';
+        tagsBadge.textContent = item.tags.join(', ');
+        div.appendChild(tagsBadge);
+      }
+
+      // Delete button
+      const delBtn = document.createElement('div');
+      delBtn.className = 'delete-btn';
+      delBtn.innerHTML = '&times;';
+      delBtn.title = 'Delete this media';
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        if(confirm('Delete this media item?')) {
+          pages[currentPage].splice(i, 1);
+          savePages();
+          renderGallery();
+        }
+      };
+      div.appendChild(delBtn);
+
+      // Click to open fullscreen
+      div.onclick = () => openFullscreen(i);
+
+      gallery.appendChild(div);
+    });
+  }
+
+  // Tag filtering input listener
+  tagFilterInput.addEventListener('input', () => {
+    renderGallery();
+  });
+
+  // Fullscreen modal logic
+  let fsMediaElement = null;
+
+  function openFullscreen(index) {
+    fullscreenIndex = filteredMediaIndices.indexOf(index);
+    if(fullscreenIndex === -1) return;
+
+    showFullscreenMedia();
+    fullscreenOverlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function closeFullscreen() {
+    fullscreenOverlay.style.display = 'none';
+    document.body.style.overflow = '';
+    if(fsMediaElement) {
+      fsMediaElement.pause && fsMediaElement.pause();
+      fullscreenOverlay.removeChild(fsMediaElement);
+      fsMediaElement = null;
+    }
+  }
+
+  function showFullscreenMedia() {
+    if(fsMediaElement) {
+      fullscreenOverlay.removeChild(fsMediaElement);
+      fsMediaElement = null;
+    }
+    if(fullscreenIndex < 0 || fullscreenIndex >= filteredMediaIndices.length) {
+      closeFullscreen();
+      return;
+    }
+    const mediaIndex = filteredMediaIndices[fullscreenIndex];
+    const mediaItem = pages[currentPage][mediaIndex];
+
+    if(!mediaItem) {
+      closeFullscreen();
+      return;
+    }
+
+    if(mediaItem.type === 'video') {
+      const video = document.createElement('video');
+      video.src = mediaItem.src;
+      video.controls = true;
+      video.autoplay = true;
+      video.style.maxWidth = '90vw';
+      video.style.maxHeight = '80vh';
+      video.style.borderRadius = '15px';
+      fsMediaElement = video;
+    } else {
+      const img = document.createElement('img');
+      img.src = mediaItem.src;
+      img.style.maxWidth = '90vw';
+      img.style.maxHeight = '80vh';
+      img.style.borderRadius = '15px';
+      fsMediaElement = img;
+    }
+    fullscreenOverlay.appendChild(fsMediaElement);
+
+    // Caption with date + tags
+    let captionText = `Uploaded: ${new Date(mediaItem.uploadDate).toLocaleString()}`;
+    if(mediaItem.tags.length) {
+      captionText += ` | Tags: ${mediaItem.tags.join(', ')}`;
+    }
+
+    // Remove old caption if exists
+    let oldCaption = document.getElementById('fullscreenCaption');
+    if(oldCaption) oldCaption.remove();
+
+    const caption = document.createElement('div');
+    caption.id = 'fullscreenCaption';
+    caption.textContent = captionText;
+    fullscreenOverlay.appendChild(caption);
+  }
+
+  fullscreenCloseBtn.onclick = () => closeFullscreen();
+  fullscreenOverlay.onclick = (e) => {
+    if(e.target === fullscreenOverlay) closeFullscreen();
+  };
+
+  fullscreenNavPrev.onclick = () => {
+    if(fullscreenIndex > 0) {
+      fullscreenIndex--;
+      showFullscreenMedia();
+    }
+  };
+  fullscreenNavNext.onclick = () => {
+    if(fullscreenIndex < filteredMediaIndices.length -1) {
+      fullscreenIndex++;
+      showFullscreenMedia();
+    }
+  };
+
+  // Keyboard navigation in fullscreen
+  window.addEventListener('keydown', (e) => {
+    if(fullscreenOverlay.style.display !== 'flex') return;
+    if(e.key === 'ArrowLeft') fullscreenNavPrev.click();
+    if(e.key === 'ArrowRight') fullscreenNavNext.click();
+    if(e.key === 'Escape') closeFullscreen();
+  });
+
+  // Initialization on page load
+  if(isLoggedIn()) {
+    pages = loadPages();
+    showDashboard();
+  } else {
+    showLogin();
+  }
+
+})();
+</script>
+</body>
+</html>

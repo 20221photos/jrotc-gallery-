@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AFJROTC Public Gallery - OH-20221</title>
+<style>
+  body {
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #6a1b9a 0%, #4a148c 100%);
+    color: #ddd;
+    user-select: none;
+  }
+  header {
+    background: #4a148c;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    border-radius: 0 0 15px 15px;
+  }
+  #unitBadge {
+    height: 70px;
+    width: 70px;
+    border-radius: 12px;
+    margin-right: 15px;
+    object-fit: contain;
+    border: 2px solid #b39ddb;
+  }
+  header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: #ddd;
+    letter-spacing: 1.5px;
+    margin: 0;
+  }
+
+  #pagesNav {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    margin: 20px auto 10px;
+    max-width: 960px;
+    padding-bottom: 5px;
+  }
+  #pagesNav button {
+    flex-shrink: 0;
+    background: #7e57c2;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 0 5px #512da8;
+    transition: background-color 0.3s;
+    border: none;
+    cursor: pointer;
+  }
+  #pagesNav button.active {
+    background: #d1c4e9;
+    color: #4a148c;
+    box-shadow: 0 0 12px #d1c4e9;
+    font-weight: 700;
+  }
+  #pagesNav button:hover:not(.active) {
+    background: #9c27b0;
+  }
+
+  #tagFilter {
+    display: block;
+    margin: 10px auto 20px;
+    max-width: 300px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #4a148c;
+    width: 90%;
+    max-width: 350px;
+  }
+
+  #gallery {
+    max-width: 960px;
+    margin: 0 auto 30px;
+    padding: 0 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(180px,1fr));
+    gap: 14px;
+  }
+  .media-item {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 8px #7e57c2;
+    cursor: pointer;
+    background: #4a148c;
+    transition: box-shadow 0.3s;
+  }
+  .media-item:hover {
+    box-shadow: 0 0 20px #d1c4e9;
+  }
+  .media-item img, .media-item video {
+    display: block;
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 12px;
+  }
+  .media-item .upload-date {
+    position: absolute;
+    bottom: 5px;
+    left: 6px;
+    background: rgba(74, 20, 140, 0.7);
+    color: #d1c4e9;
+    font-size: 0.75rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    user-select: none;
+    max-width: 90%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .media-item .tags {
+    position: absolute;
+    bottom: 22px;
+    left: 6px;
+    background: rgba(121, 81, 255, 0.75);
+    color: #ddd;
+    font-size: 0.75rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    user-select: none;
+    max-width: 90%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* Fullscreen modal */
+  #fullscreenOverlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(10,10,10,0.95);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    flex-direction: column;
+    user-select: none;
+  }
+  #fullscreenMedia {
+    max-width: 90vw;
+    max-height: 80vh;
+    border-radius: 15px;
+    box-shadow: 0 0 40px #b39ddb;
+    background: black;
+  }
+  #fullscreenCaption {
+    margin-top: 12px;
+    color: #b39ddb;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    max-width: 90vw;
+  }
+  #fullscreenCloseBtn {
+    position: absolute;
+    top: 12px;
+    right: 20px;
+    font-size: 2rem;
+    font-weight: 900;
+    color: #d1c4e9;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  #fullscreenNavPrev, #fullscreenNavNext {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 3rem;
+    color: #d1c4e9;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    user-select: none;
+    padding: 0 10px;
+  }
+  #fullscreenNavPrev {
+    left: 10px;
+  }
+  #fullscreenNavNext {
+    right: 10px;
+  }
+  #fullscreenNavPrev:hover, #fullscreenNavNext:hover, #fullscreenCloseBtn:hover {
+    color: #9c27b0;
+  }
+
+  /* Scrollbar styling */
+  #gallery::-webkit-scrollbar {
+    width: 10px;
+  }
+  #gallery::-webkit-scrollbar-track {
+    background: #311b70;
+    border-radius: 10px;
+  }
+  #gallery::-webkit-scrollbar-thumb {
+    background: #7e57c2;
+    border-radius: 10px;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    #gallery {
+      grid-template-columns: repeat(auto-fill,minmax(120px,1fr));
+    }
+    #fullscreenMedia {
+      max-width: 95vw;
+      max-height: 70vh;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img id="unitBadge" src="unit_badge_resized.png" alt="Unit Badge" />
+  <h1>OH-20221 Logan High School AFJROTC Public Gallery</h1>
+</header>
+
+<!-- 🔐 Dashboard Login Button -->
+<div style="text-align: center; margin: 15px;">
+  <a href="dashboard.html" style="
+    display: inline-block;
+    background: #7e57c2;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    box-shadow: 0 0 8px #4a148c;
+    transition: background-color 0.3s, box-shadow 0.3s;
+  " onmouseover="this.style.background='#b39ddb'; this.style.boxShadow='0 0 12px #d1c4e9';"
+     onmouseout="this.style.background='#7e57c2'; this.style.boxShadow='0 0 8px #4a148c';">
+    Manage Gallery (Admin)
+  </a>
+</div>
+  <img id="unitBadge" src="unit_badge_resized.png" alt="Unit Badge" />
+  <h1>OH-20221 Logan High School AFJROTC Public Gallery</h1>
+</header>
+
+<nav id="pagesNav" aria-label="Gallery Pages Navigation"></nav>
+<input type="text" id="tagFilter" placeholder="Filter by tag(s), comma-separated" title="Filter media by tags" />
+
+<main id="gallery" aria-label="Media Gallery">
+  <p style="text-align:center; color:#ccc;">Loading galleries...</p>
+</main>
+
+<!-- Fullscreen Modal -->
+<div id="fullscreenOverlay" role="dialog" aria-modal="true" aria-label="Fullscreen media viewer">
+  <button id="fullscreenCloseBtn" aria-label="Close fullscreen viewer">&times;</button>
+  <button id="fullscreenNavPrev" aria-label="Previous media">&#8592;</button>
+  <button id="fullscreenNavNext" aria-label="Next media">&#8594;</button>
+</div>
+
+<script>
+(() => {
+  const STORAGE_KEY = 'afjrotc_pages';
+
+  const unitBadge = document.getElementById('unitBadge');
+  const pagesNav = document.getElementById('pagesNav');
+  const tagFilterInput = document.getElementById('tagFilter');
+  const gallery = document.getElementById('gallery');
+
+  const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+  const fullscreenCloseBtn = document.getElementById('fullscreenCloseBtn');
+  const fullscreenNavPrev = document.getElementById('fullscreenNavPrev');
+  const fullscreenNavNext = document.getElementById('fullscreenNavNext');
+
+  let pages = {};
+  let currentPage = null;
+  let filteredMediaIndices = [];
+  let fullscreenIndex = -1;
+
+  // Load pages
+  function loadPages() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) return JSON.parse(raw);
+    } catch(e) {
+      console.error('Error loading pages:', e);
+    }
+    return {};
+  }
+
+  function renderPagesNav() {
+    pagesNav.innerHTML = '';
+    const pageNames = Object.keys(pages);
+    if(pageNames.length === 0) {
+      pagesNav.innerHTML = '<p style="color:#ddd; font-style: italic;">No galleries available.</p>';
+      currentPage = null;
+      gallery.innerHTML = '<p style="text-align:center; color:#ccc;">No galleries available.</p>';
+      return;
+    }
+    pageNames.forEach(name => {
+      const btn = document.createElement('button');
+      btn.textContent = name;
+      btn.classList.toggle('active', name === currentPage);
+      btn.onclick = () => {
+        selectPage(name);
+      };
+      pagesNav.appendChild(btn);
+    });
+  }
+
+  function selectPage(name) {
+    currentPage = name;
+    renderPagesNav();
+    renderGallery();
+    tagFilterInput.value = '';
+  }
+
+  function renderGallery() {
+    if(!currentPage) {
+      gallery.innerHTML = '<p style="text-align:center; color:#ccc;">No gallery selected.</p>';
+      return;
+    }
+    const media = pages[currentPage] || [];
+    const filterTags = tagFilterInput.value.toLowerCase().split(',').map(t => t.trim()).filter(t => t);
+    filteredMediaIndices = [];
+
+    gallery.innerHTML = '';
+    if(media.length === 0) {
+      gallery.innerHTML = '<p style="text-align:center; color:#ccc;">No media in this gallery.</p>';
+      return;
+    }
+
+    media.forEach((item, i) => {
+      if(filterTags.length > 0) {
+        const tagsLower = item.tags.map(t => t.toLowerCase());
+        const matched = filterTags.every(fTag => tagsLower.includes(fTag));
+        if(!matched) return;
+      }
+      filteredMediaIndices.push(i);
+
+      const div = document.createElement('div');
+      div.className = 'media-item';
+      div.title = `Uploaded: ${new Date(item.uploadDate).toLocaleString()}\nTags: ${item.tags.join(', ') || 'None'}`;
+      div.dataset.index = i;
+
+      if(item.type === 'video') {
+        const video = document.createElement('video');
+        video.src = item.src;
+        video.setAttribute('muted', '');
+        video.setAttribute('playsinline', '');
+        video.setAttribute('preload', 'metadata');
+        video.style.height = '160px';
+        video.style.width = '100%';
+        video.style.objectFit = 'cover';
+        video.style.borderRadius = '12px';
+        div.appendChild(video);
+      } else {
+        const img = document.createElement('img');
+        img.src = item.src;
+        img.alt = `Media ${i+1}`;
+        div.appendChild(img);
+      }
+
+      const dateBadge = document.createElement('div');
+      dateBadge.className = 'upload-date';
+      dateBadge.textContent = new Date(item.uploadDate).toLocaleDateString();
+      div.appendChild(dateBadge);
+
+      if(item.tags.length) {
+        const tagsBadge = document.createElement('div');
+        tagsBadge.className = 'tags';
+        tagsBadge.textContent = item.tags.join(', ');
+        div.appendChild(tagsBadge);
+      }
+
+      div.onclick = () => openFullscreen(i);
+
+      gallery.appendChild(div);
+    });
+
+    if(filteredMediaIndices.length === 0) {
+      gallery.innerHTML = '<p style="text-align:center; color:#ccc;">No media matched the filter.</p>';
+    }
+  }
+
+  // Fullscreen modal logic
+  let fsMediaElement = null;
+
+  function openFullscreen(index) {
+    fullscreenIndex = filteredMediaIndices.indexOf(index);
+    if(fullscreenIndex === -1) return;
+
+    showFullscreenMedia();
+    fullscreenOverlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function closeFullscreen() {
+    fullscreenOverlay.style.display = 'none';
+    document.body.style.overflow = '';
+    if(fsMediaElement) {
+      fsMediaElement.pause && fsMediaElement.pause();
+      fullscreenOverlay.removeChild(fsMediaElement);
+      fsMediaElement = null;
+    }
+  }
+
+  function showFullscreenMedia() {
+    if(fsMediaElement) {
+      fullscreenOverlay.removeChild(fsMediaElement);
+      fsMediaElement = null;
+    }
+    if(fullscreenIndex < 0 || fullscreenIndex >= filteredMediaIndices.length) {
+      closeFullscreen();
+      return;
+    }
+    const mediaIndex = filteredMediaIndices[fullscreenIndex];
+    const mediaItem = pages[currentPage][mediaIndex];
+    if(!mediaItem) {
+      closeFullscreen();
+      return;
+    }
+
+    if(mediaItem.type === 'video') {
+      const video = document.createElement('video');
+      video.src = mediaItem.src;
+      video.controls = true;
+      video.autoplay = true;
+      video.style.maxWidth = '90vw';
+      video.style.maxHeight = '80vh';
+      video.style.borderRadius = '15px';
+      fsMediaElement = video;
+    } else {
+      const img = document.createElement('img');
+      img.src = mediaItem.src;
+      img.style.maxWidth = '90vw';
+      img.style.maxHeight = '80vh';
+      img.style.borderRadius = '15px';
+      fsMediaElement = img;
+    }
+    fullscreenOverlay.appendChild(fsMediaElement);
+
+    let captionText = `Uploaded: ${new Date(mediaItem.uploadDate).toLocaleString()}`;
+    if(mediaItem.tags.length) {
+      captionText += ` | Tags: ${mediaItem.tags.join(', ')}`;
+    }
+
+    let oldCaption = document.getElementById('fullscreenCaption');
+    if(oldCaption) oldCaption.remove();
+
+    const caption = document.createElement('div');
+    caption.id = 'fullscreenCaption';
+    caption.textContent = captionText;
+    fullscreenOverlay.appendChild(caption);
+  }
+
+  fullscreenCloseBtn.onclick = () => closeFullscreen();
+  fullscreenOverlay.onclick = e => {
+    if(e.target === fullscreenOverlay) closeFullscreen();
+  };
+  fullscreenNavPrev.onclick = () => {
+    if(fullscreenIndex > 0) {
+      fullscreenIndex--;
+      showFullscreenMedia();
+    }
+  };
+  fullscreenNavNext.onclick = () => {
+    if(fullscreenIndex < filteredMediaIndices.length - 1) {
+      fullscreenIndex++;
+      showFullscreenMedia();
+    }
+  };
+
+  window.addEventListener('keydown', e => {
+    if(fullscreenOverlay.style.display !== 'flex') return;
+    if(e.key === 'ArrowLeft') fullscreenNavPrev.click();
+    if(e.key === 'ArrowRight') fullscreenNavNext.click();
+    if(e.key === 'Escape') closeFullscreen();
+  });
+
+  // Load unit badge from localStorage if present
+  function loadUnitBadge() {
+    const badgeData = localStorage.getItem('unitBadgeDataUrl');
+    if(badgeData) {
+      unitBadge.src = badgeData;
+    }
+  }
+
+  // Initialization
+  pages = loadPages();
+  if(Object.keys(pages).length > 0) {
+    selectPage(Object.keys(pages)[0]);
+  } else {
+    gallery.innerHTML = '<p style="text-align:center; color:#ccc;">No galleries available.</p>';
+  }
+  loadUnitBadge();
+
+  tagFilterInput.addEventListener('input', () => {
+    renderGallery();
+  });
+})();
+</script>
+</body>
+</html>
